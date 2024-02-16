@@ -24,8 +24,8 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups.GrowersSequencerPowerupsTes
     ///
     /// If the item has some preconditions that should be validated, it shall also extend the IValidatable interface and add the validation logic accordingly.
     /// </summary>
-    [ExportMetadata("Name", "Plugin Template Trigger")]
-    [ExportMetadata("Description", "This trigger will show a notification when a random generated number is even on evaluation")]
+    [ExportMetadata("Name", "Timed Trigger")]
+    [ExportMetadata("Description", "This will be triggered at a given time")]
     [ExportMetadata("Icon", "Plugin_Test_SVG")]
     [ExportMetadata("Category", "Growers Sequencer Powerups")]
     [Export(typeof(ISequenceTrigger))]

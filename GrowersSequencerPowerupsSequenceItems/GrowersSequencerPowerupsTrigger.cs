@@ -12,7 +12,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace GrowersAstro.NINA.GrowersSequencerPowerups.GrowersSequencerPowerupsTestCategory {
+namespace GrowersAstro.NINA.GrowersSequencerPowerups {
     /// <summary>
     /// This Class shows the basic principle on how to add a new Sequence Trigger to the N.I.N.A. sequencer via the plugin interface
     /// For ease of use this class inherits the abstract SequenceTrigger which already handles most of the running logic, like logging, exception handling etc.
@@ -24,49 +24,27 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups.GrowersSequencerPowerupsTes
     ///
     /// If the item has some preconditions that should be validated, it shall also extend the IValidatable interface and add the validation logic accordingly.
     /// </summary>
-    [ExportMetadata("Name", "Timed Trigger")]
+    [ExportMetadata("Name", "Time")]
     [ExportMetadata("Description", "This will be triggered at a given time")]
     [ExportMetadata("Icon", "Plugin_Test_SVG")]
     [ExportMetadata("Category", "Growers Sequencer Powerups")]
     [Export(typeof(ISequenceTrigger))]
     [JsonObject(MemberSerialization.OptIn)]
-    public class GrowersSequencerPowerupsTrigger : SequenceTrigger {
+    public class GrowersSequencerPowerupsTimedTrigger : SequenceTrigger {
         /// <summary>
         /// The constructor marked with [ImportingConstructor] will be used to import and construct the object
         /// General device interfaces can be added to the constructor parameters and will be automatically injected on instantiation by the plugin loader
         /// </summary>
         /// <remarks>
         /// Available interfaces to be injected:
-        ///     - IProfileService,
-        ///     - ICameraMediator,
-        ///     - ITelescopeMediator,
-        ///     - IFocuserMediator,
-        ///     - IFilterWheelMediator,
-        ///     - IGuiderMediator,
-        ///     - IRotatorMediator,
-        ///     - IFlatDeviceMediator,
-        ///     - IWeatherDataMediator,
-        ///     - IImagingMediator,
-        ///     - IApplicationStatusMediator,
-        ///     - INighttimeCalculator,
-        ///     - IPlanetariumFactory,
-        ///     - IImageHistoryVM,
-        ///     - IDeepSkyObjectSearchVM,
-        ///     - IDomeMediator,
-        ///     - IImageSaveMediator,
-        ///     - ISwitchMediator,
-        ///     - ISafetyMonitorMediator,
-        ///     - IApplicationMediator
-        ///     - IApplicationResourceDictionary
-        ///     - IFramingAssistantVM
-        ///     - IList<IDateTimeProvider>
+      
         /// </remarks>
         [ImportingConstructor]
-        public GrowersSequencerPowerupsTrigger() {
+        public GrowersSequencerPowerupsTimedTrigger() {
         }
 
         public override object Clone() {
-            return new GrowersSequencerPowerupsTrigger() {
+            return new GrowersSequencerPowerupsTimedTrigger() {
                 Icon = Icon,
                 Name = Name,
                 Category = Category,
@@ -107,7 +85,73 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups.GrowersSequencerPowerupsTes
         /// </summary>
         /// <returns></returns>
         public override string ToString() {
-            return $"Category: {Category}, Item: {nameof(GrowersSequencerPowerupsTrigger)}";
+            return $"Category: {Category}, Item: {nameof(GrowersSequencerPowerupsTimedTrigger)}";
+        }
+    }
+}
+
+
+namespace GrowersAstro.NINA.GrowersSequencerPowerups {
+    /// <summary>
+    /// </summary>
+    [ExportMetadata("Name", "Interval")]
+    [ExportMetadata("Description", "This will be triggered after a given time interval")]
+    [ExportMetadata("Icon", "Plugin_Test_SVG")]
+    [ExportMetadata("Category", "Growers Sequencer Powerups")]
+    [Export(typeof(ISequenceTrigger))]
+    [JsonObject(MemberSerialization.OptIn)]
+    public class GrowersSequencerPowerupsIntervalTrigger : SequenceTrigger {
+        /// <summary>
+        /// The constructor marked with [ImportingConstructor] will be used to import and construct the object
+        /// General device interfaces can be added to the constructor parameters and will be automatically injected on instantiation by the plugin loader
+        /// </summary>
+        [ImportingConstructor]
+        public GrowersSequencerPowerupsIntervalTrigger() {
+        }
+
+        public override object Clone() {
+            return new GrowersSequencerPowerupsIntervalTrigger() {
+                Icon = Icon,
+                Name = Name,
+                Category = Category,
+                Description = Description
+            };
+        }
+
+        /// <summary>
+        /// The actual running logic for when the trigger should run
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="progress"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public override Task Execute(ISequenceContainer context, IProgress<ApplicationStatus> progress, CancellationToken token) {
+            Notification.ShowSuccess("Trigger was fired");
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// This method will be evaluated to see if the trigger should be executed.
+        /// When true - the Execute method will be called
+        /// Skipped otherwise
+        ///
+        /// For this example the trigger will fire when the random number generator generates an even number
+        /// </summary>
+        /// <param name="previousItem"></param>
+        /// <param name="nextItem"></param>
+        /// <returns></returns>
+        public override bool ShouldTrigger(ISequenceItem previousItem, ISequenceItem nextItem) {
+            return random.Next(0, 1000) % 2 == 0;
+        }
+
+        Random random = new Random();
+
+        /// <summary>
+        /// This string will be used for logging
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString() {
+            return $"Category: {Category}, Item: {nameof(GrowersSequencerPowerupsIntervalTrigger)}";
         }
     }
 }

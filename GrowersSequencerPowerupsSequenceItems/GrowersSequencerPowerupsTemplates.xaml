@@ -6,7 +6,8 @@
     xmlns:mini="clr-namespace:NINA.View.Sequencer.MiniSequencer;assembly=NINA.Sequencer"
     xmlns:nina="clr-namespace:NINA.View.Sequencer;assembly=NINA.Sequencer"
     xmlns:rules="clr-namespace:NINA.Core.Utility.ValidationRules;assembly=NINA.Core"
-    xmlns:ns="clr-namespace:NINA.Core.Locale;assembly=NINA.Core">
+    xmlns:ns="clr-namespace:NINA.Core.Locale;assembly=NINA.Core"
+    xmlns:customcontrollibrary="clr-namespace:NINA.CustomControlLibrary;assembly=NINA.CustomControlLibrary">
  
    
     <!-- ============= -->
@@ -148,132 +149,25 @@
     <DataTemplate DataType="{x:Type local:GrowersSequencerPowerupsIntervalTrigger}">
         <nina:SequenceBlockView>
             <nina:SequenceBlockView.SequenceItemContent>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock
-                        Margin="5,0,0,0"
-                        VerticalAlignment="Center"
-                        Text="Interval ID:" />
-                    <ComboBox
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" Text="{ns:Loc LblDelay}" />
+                        <customcontrollibrary:UnitTextBox
+                        MinWidth="40"
                         Margin="5,0,0,0"
                         VerticalAlignment="Center"
                         VerticalContentAlignment="Center"
-                        DisplayMemberPath="Name"
-                        SelectedItem="{Binding SelectedTimerId}" >
-                        <ComboBoxItem>1</ComboBoxItem>
-                        <ComboBoxItem>2</ComboBoxItem>
-                        <ComboBoxItem>3</ComboBoxItem>
-                        <ComboBoxItem>4</ComboBoxItem>
-                        <ComboBoxItem>5</ComboBoxItem>
-                        <ComboBoxItem>6</ComboBoxItem>
-                        <ComboBoxItem>7</ComboBoxItem>
-                        <ComboBoxItem>8</ComboBoxItem>
-                        <ComboBoxItem>9</ComboBoxItem>
-                    </ComboBox>
-                    <TextBlock
-                        Margin="5,0,0,0"
-                        VerticalAlignment="Center"
-                        Text="    " />
-                    
-                    <ComboBox
-                       Margin="5,0,0,0"
-                       VerticalAlignment="Center"
-                       VerticalContentAlignment="Center"
-                       DisplayMemberPath="Name"
-                       ItemsSource="{Binding DateTimeProviders}"
-                       SelectedItem="{Binding SelectedProvider}" />
-                    <TextBlock
-                       Margin="5,0,0,0"
-                       VerticalAlignment="Center"
-                       Text="{ns:Loc LblTime}" />
-                    <TextBox
-                       MinWidth="40"
-                       Margin="5,0,0,0"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"
-                       HorizontalContentAlignment="Right"
-                       IsEnabled="{Binding HasFixedTimeProvider, Converter={StaticResource InverseBooleanConverter}}">
-                        <TextBox.Text>
-                            <Binding Path="Hours">
-                                <Binding.ValidationRules>
-                                    <rules:IntRangeRule>
-                                        <rules:IntRangeRule.ValidRange>
-                                            <rules:IntRangeChecker Maximum="23" Minimum="0" />
-                                        </rules:IntRangeRule.ValidRange>
-                                    </rules:IntRangeRule>
-                                </Binding.ValidationRules>
-                            </Binding>
-                        </TextBox.Text>
-                    </TextBox>
-                    <TextBlock VerticalAlignment="Center" Text=":" />
-                    <TextBox
-                       MinWidth="40"
-                       Margin="5,0,0,0"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"
-                       HorizontalContentAlignment="Right"
-                       IsEnabled="{Binding HasFixedTimeProvider, Converter={StaticResource InverseBooleanConverter}}">
-                        <TextBox.Text>
-                            <Binding Path="Minutes">
-                                <Binding.ValidationRules>
-                                    <rules:IntRangeRule>
-                                        <rules:IntRangeRule.ValidRange>
-                                            <rules:IntRangeChecker Maximum="59" Minimum="0" />
-                                        </rules:IntRangeRule.ValidRange>
-                                    </rules:IntRangeRule>
-                                </Binding.ValidationRules>
-                            </Binding>
-                        </TextBox.Text>
-                    </TextBox>
-                    <TextBlock VerticalAlignment="Center" Text=":" />
-                    <TextBox
-                       MinWidth="40"
-                       Margin="5,0,0,0"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"
-                       HorizontalContentAlignment="Right"
-                       IsEnabled="{Binding HasFixedTimeProvider, Converter={StaticResource InverseBooleanConverter}}">
-                        <TextBox.Text>
-                            <Binding Path="Seconds">
-                                <Binding.ValidationRules>
-                                    <rules:IntRangeRule>
-                                        <rules:IntRangeRule.ValidRange>
-                                            <rules:IntRangeChecker Maximum="59" Minimum="0" />
-                                        </rules:IntRangeRule.ValidRange>
-                                    </rules:IntRangeRule>
-                                </Binding.ValidationRules>
-                            </Binding>
-                        </TextBox.Text>
-                    </TextBox>
-                    <StackPanel Orientation="Horizontal" Visibility="{Binding HasFixedTimeProvider, Converter={StaticResource VisibilityConverter}}">
-                        <TextBlock
-                           Margin="5,0,0,0"
-                           VerticalAlignment="Center"
-                           Text="{ns:Loc LblTimeOffset}"
-                           ToolTip="{ns:Loc LblTimeOffsetTooltip}" />
-                        <TextBox
-                           MinWidth="40"
-                           Margin="5,0,0,0"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center"
-                           HorizontalContentAlignment="Right"
-                           Text="{Binding MinutesOffset}"
-                           Visibility="{Binding HasFixedTimeProvider, Converter={StaticResource VisibilityConverter}}" />
-                        <TextBlock VerticalAlignment="Center">m</TextBlock>
+                        TextAlignment="Right"
+                        Unit="s">
+                        <customcontrollibrary:UnitTextBox.Text>
+                                <Binding Mode="TwoWay" Path="Time">
+                                    <Binding.ValidationRules>
+                                        <rules:GreaterThanZeroRule />
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </customcontrollibrary:UnitTextBox.Text>
+                        </customcontrollibrary:UnitTextBox>
                     </StackPanel>
-                </StackPanel>
-            </nina:SequenceBlockView.SequenceItemContent>
-            <nina:SequenceBlockView.SequenceItemProgressContent>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock
-                       Margin="5,0,0,0"
-                       VerticalAlignment="Center"
-                       Text="{ns:Loc LblRemaining}" />
-                    <TextBlock
-                       Margin="5,0,0,0"
-                       VerticalAlignment="Center"
-                       Text="{Binding RemainingTime, StringFormat={}{0:hh}:{0:mm}:{0:ss}}" />
-                </StackPanel>
-            </nina:SequenceBlockView.SequenceItemProgressContent>
+                </nina:SequenceBlockView.SequenceItemContent>
         </nina:SequenceBlockView>
     </DataTemplate>
 

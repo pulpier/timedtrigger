@@ -13,11 +13,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using NINA.Core.Utility;
-// using IDateTimeProvider = NINA.Sequencer.Utility.DateTimeProvider.IDateTimeProvider;
+using NINA.Core.Enum;
 using NINA.Astrometry;
 using NINA.Core.Locale;
 using TimeProvider = NINA.Sequencer.Utility.DateTimeProvider.TimeProvider;
 using NINA.Sequencer.SequenceItem.Utility;
+using NINA.Sequencer.Interfaces;
+using NINA.Sequencer.Utility;
+using NINA.WPF.Base.Interfaces.ViewModel;
 
 namespace GrowersAstro.NINA.GrowersSequencerPowerups {
     /// <summary>
@@ -132,6 +135,7 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
                 dateTimeProviders = value;
                 UpdateTime();
                 RaisePropertyChanged();
+                updateInternalTime();
             }
         }
 
@@ -146,8 +150,8 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
             get => hours;
             set {
                 hours = value;
-                UpdateTime();
                 RaisePropertyChanged();
+                updateInternalTime();
             }
         }
 
@@ -156,8 +160,8 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
             get => minutes;
             set {
                 minutes = value;
-                UpdateTime();
                 RaisePropertyChanged();
+                updateInternalTime();
             }
         }
 
@@ -168,6 +172,7 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
                 minutesOffset = value;
                 UpdateTime();
                 RaisePropertyChanged();
+                updateInternalTime();
             }
         }
 
@@ -176,8 +181,8 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
             get => seconds;
             set {
                 seconds = value;
-                UpdateTime();
                 RaisePropertyChanged();
+                updateInternalTime();
             }
         }
 
@@ -188,6 +193,7 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
                 selectedProvider = value;
                 if (selectedProvider != null) {
                     UpdateTime();
+                    updateInternalTime();
                     RaisePropertyChanged();
                     RaisePropertyChanged(nameof(HasFixedTimeProvider));
                 }
@@ -204,16 +210,8 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
                     Hours = t.Hour;
                     Minutes = t.Minute;
                     Seconds = t.Second;
-
                 }
-
-                DateTime currentTime = System.DateTime.Now;
-                triggerTime = new DateTime(currentTime.Year, currentTime.Month, currentTime.Day, Hours, Minutes, Seconds);
-
-                if (currentTime > triggerTime) {
-                    triggerTime = triggerTime.AddDays(1);
-                }
-
+                updateInternalTime();
                 timeDeterminedSuccessfully = true;
             } catch (Exception) {
                 timeDeterminedSuccessfully = false;
@@ -221,7 +219,17 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
             }
         }
 
-        public ICustomDateTime DateTime { get; set; }
+        private void updateInternalTime() {
+            DateTime currentTime = System.DateTime.Now;
+            triggerTime = new DateTime(currentTime.Year, currentTime.Month, currentTime.Day, Hours, Minutes, Seconds);
+
+            if (currentTime > triggerTime) {
+                triggerTime = triggerTime.AddDays(1);
+            }
+        }
+
+
+    public ICustomDateTime DateTime { get; set; }
 
         public override string ToString() {
             return $"Category: {Category}, Item: {nameof(WaitForTime)}, Time: {Hours}:{Minutes}:{Seconds}h, Offset: {MinutesOffset}";
@@ -245,8 +253,13 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
         /// The constructor marked with [ImportingConstructor] will be used to import and construct the object
         /// General device interfaces can be added to the constructor parameters and will be automatically injected on instantiation by the plugin loader
         /// </summary>
+        /// 
+
+        bool active = false;
+        DateTime lastTime;
+
         [ImportingConstructor]
-        public GrowersSequencerPowerupsIntervalTrigger() {
+        public GrowersSequencerPowerupsIntervalTrigger() : base() {
         }
 
         public override object Clone() {
@@ -266,25 +279,26 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
         /// <param name="token"></param>
         /// <returns></returns>
         public override Task Execute(ISequenceContainer context, IProgress<ApplicationStatus> progress, CancellationToken token) {
-            Notification.ShowSuccess("Trigger was fired");
+            Notification.ShowSuccess("Trigger: Interval");
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// This method will be evaluated to see if the trigger should be executed.
-        /// When true - the Execute method will be called
-        /// Skipped otherwise
-        ///
-        /// For this example the trigger will fire when the random number generator generates an even number
-        /// </summary>
-        /// <param name="previousItem"></param>
-        /// <param name="nextItem"></param>
-        /// <returns></returns>
         public override bool ShouldTrigger(ISequenceItem previousItem, ISequenceItem nextItem) {
-            return random.Next(0, 1000) % 2 == 0;
-        }
+            DateTime nowTime = System.DateTime.Now;
 
-        Random random = new Random();
+            // as this is a times trigger it will start at the beginning of the sequence
+            if (previousItem == null) {
+                lastTime = nowTime;
+                return false;
+            }
+
+            if (lastTime.AddSeconds(time) < nowTime) {
+                lastTime = nowTime;
+                return true;
+            } else {
+                return false;
+            }
+        }
 
         /// <summary>
         /// This string will be used for logging
@@ -292,6 +306,17 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
         /// <returns></returns>
         public override string ToString() {
             return $"Category: {Category}, Item: {nameof(GrowersSequencerPowerupsIntervalTrigger)}";
+        }
+
+        private int time;
+
+        [JsonProperty]
+        public int Time {
+            get => time;
+            set {
+                time = value;
+                RaisePropertyChanged();
+            }
         }
     }
 }

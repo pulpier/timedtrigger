@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using NINA.Core.Model;
 using NINA.Core.Utility.Notification;
+using NINA.Sequencer.Utility.DateTimeProvider;
 using NINA.Sequencer.Container;
 using NINA.Sequencer.SequenceItem;
 using NINA.Sequencer.Trigger;
@@ -11,6 +12,12 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using NINA.Core.Utility;
+// using IDateTimeProvider = NINA.Sequencer.Utility.DateTimeProvider.IDateTimeProvider;
+using NINA.Astrometry;
+using NINA.Core.Locale;
+using TimeProvider = NINA.Sequencer.Utility.DateTimeProvider.TimeProvider;
+using NINA.Sequencer.SequenceItem.Utility;
 
 namespace GrowersAstro.NINA.GrowersSequencerPowerups {
     /// <summary>
@@ -26,7 +33,7 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
     /// </summary>
     [ExportMetadata("Name", "Time")]
     [ExportMetadata("Description", "This will be triggered at a given time")]
-    [ExportMetadata("Icon", "Plugin_Test_SVG")]
+    [ExportMetadata("Icon", "ClockSVG")]
     [ExportMetadata("Category", "Growers Sequencer Powerups")]
     [Export(typeof(ISequenceTrigger))]
     [JsonObject(MemberSerialization.OptIn)]
@@ -35,16 +42,24 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
         /// The constructor marked with [ImportingConstructor] will be used to import and construct the object
         /// General device interfaces can be added to the constructor parameters and will be automatically injected on instantiation by the plugin loader
         /// </summary>
-        /// <remarks>
-        /// Available interfaces to be injected:
-      
-        /// </remarks>
+     
+        private IList<IDateTimeProvider> dateTimeProviders;
+        private int hours;
+        private int minutes;
+        private int minutesOffset;
+        private int seconds;
+        DateTime triggerTime;
+
+        private IDateTimeProvider selectedProvider;
+
         [ImportingConstructor]
-        public GrowersSequencerPowerupsTimedTrigger() {
+        public GrowersSequencerPowerupsTimedTrigger(IList<IDateTimeProvider> dateTimeProviders) {
+            this.dateTimeProviders = dateTimeProviders;
+            this.selectedProvider = dateTimeProviders?.FirstOrDefault();
         }
 
         public override object Clone() {
-            return new GrowersSequencerPowerupsTimedTrigger() {
+            return new GrowersSequencerPowerupsTimedTrigger(dateTimeProviders) {
                 Icon = Icon,
                 Name = Name,
                 Category = Category,
@@ -60,7 +75,7 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
         /// <param name="token"></param>
         /// <returns></returns>
         public override Task Execute(ISequenceContainer context, IProgress<ApplicationStatus> progress, CancellationToken token) {
-            Notification.ShowSuccess("Trigger was fired");
+            Notification.ShowSuccess("Trigger: Time");
             return Task.CompletedTask;
         }
 
@@ -75,18 +90,143 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
         /// <param name="nextItem"></param>
         /// <returns></returns>
         public override bool ShouldTrigger(ISequenceItem previousItem, ISequenceItem nextItem) {
-            return random.Next(0, 1000) % 2 == 0;
+            DateTime currentTime = System.DateTime.Now;
+            if (currentTime > triggerTime) {
+                UpdateTime();
+                return true;
+            }
+            return false;
         }
 
-        Random random = new Random();
+        private IList<string> issues = new List<string>();
 
-        /// <summary>
-        /// This string will be used for logging
-        /// </summary>
-        /// <returns></returns>
+        public IList<string> Issues {
+            get => issues;
+            set {
+                issues = value;
+                RaisePropertyChanged();
+            }
+        }
+
+
+
+        public bool Validate() {
+            var i = new List<string>();
+            if (HasFixedTimeProvider) {
+                var referenceDate = NighttimeCalculator.GetReferenceDate(System.DateTime.Now);
+                if (lastReferenceDate != referenceDate) {
+                    UpdateTime();
+                }
+            }
+            if (!timeDeterminedSuccessfully) {
+                i.Add(Loc.Instance["LblSelectedTimeSourceInvalid"]);
+            }
+
+            Issues = i;
+            return i.Count == 0;
+        }
+
+        public IList<IDateTimeProvider> DateTimeProviders {
+            get => dateTimeProviders;
+            set {
+                dateTimeProviders = value;
+                UpdateTime();
+                RaisePropertyChanged();
+            }
+        }
+
+        public bool HasFixedTimeProvider {
+            get {
+                return selectedProvider != null && !(selectedProvider is TimeProvider);
+            }
+        }
+
+        [JsonProperty]
+        public int Hours {
+            get => hours;
+            set {
+                hours = value;
+                UpdateTime();
+                RaisePropertyChanged();
+            }
+        }
+
+        [JsonProperty]
+        public int Minutes {
+            get => minutes;
+            set {
+                minutes = value;
+                UpdateTime();
+                RaisePropertyChanged();
+            }
+        }
+
+        [JsonProperty]
+        public int MinutesOffset {
+            get => minutesOffset;
+            set {
+                minutesOffset = value;
+                UpdateTime();
+                RaisePropertyChanged();
+            }
+        }
+
+        [JsonProperty]
+        public int Seconds {
+            get => seconds;
+            set {
+                seconds = value;
+                UpdateTime();
+                RaisePropertyChanged();
+            }
+        }
+
+        [JsonProperty]
+        public IDateTimeProvider SelectedProvider {
+            get => selectedProvider;
+            set {
+                selectedProvider = value;
+                if (selectedProvider != null) {
+                    UpdateTime();
+                    RaisePropertyChanged();
+                    RaisePropertyChanged(nameof(HasFixedTimeProvider));
+                }
+            }
+        }
+
+        private bool timeDeterminedSuccessfully;
+        private DateTime lastReferenceDate;
+        private void UpdateTime() {
+            try {
+                lastReferenceDate = NighttimeCalculator.GetReferenceDate(System.DateTime.Now);
+                if (HasFixedTimeProvider) {
+                    var t = SelectedProvider.GetDateTime(this) + TimeSpan.FromMinutes(MinutesOffset);
+                    Hours = t.Hour;
+                    Minutes = t.Minute;
+                    Seconds = t.Second;
+
+                }
+
+                DateTime currentTime = System.DateTime.Now;
+                triggerTime = new DateTime(currentTime.Year, currentTime.Month, currentTime.Day, Hours, Minutes, Seconds);
+
+                if (currentTime > triggerTime) {
+                    triggerTime = triggerTime.AddDays(1);
+                }
+
+                timeDeterminedSuccessfully = true;
+            } catch (Exception) {
+                timeDeterminedSuccessfully = false;
+                Validate();
+            }
+        }
+
+        public ICustomDateTime DateTime { get; set; }
+
         public override string ToString() {
-            return $"Category: {Category}, Item: {nameof(GrowersSequencerPowerupsTimedTrigger)}";
+            return $"Category: {Category}, Item: {nameof(WaitForTime)}, Time: {Hours}:{Minutes}:{Seconds}h, Offset: {MinutesOffset}";
         }
+
     }
 }
 
@@ -96,7 +236,7 @@ namespace GrowersAstro.NINA.GrowersSequencerPowerups {
     /// </summary>
     [ExportMetadata("Name", "Interval")]
     [ExportMetadata("Description", "This will be triggered after a given time interval")]
-    [ExportMetadata("Icon", "Plugin_Test_SVG")]
+    [ExportMetadata("Icon", "HourglassSVG")]
     [ExportMetadata("Category", "Growers Sequencer Powerups")]
     [Export(typeof(ISequenceTrigger))]
     [JsonObject(MemberSerialization.OptIn)]
